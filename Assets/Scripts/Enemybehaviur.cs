@@ -66,6 +66,10 @@ public class EnemyBehaviour : MonoBehaviour
         {
             DetectPlayer();
         }
+        if (health <= 0)
+        {
+            Die();
+        }
     }
 
     private void DetectPlayer()
