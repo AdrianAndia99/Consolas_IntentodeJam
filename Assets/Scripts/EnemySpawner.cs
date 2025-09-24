@@ -37,23 +37,23 @@ public class EnemySpawner : MonoBehaviour
     [Tooltip("Radio de dispersión aleatoria alrededor de cada punto de spawn.")]
     [SerializeField] private float scatterRadius = 0.5f;
 
+    [Header("Dependencias")]
+    [Tooltip("Arrastra aquí el objeto del Jugador desde la jerarquía.")]
+    [SerializeField] private Transform playerTransform; // <-- ¡CAMBIO IMPORTANTE!
+
     [Header("Debug")]
     [SerializeField] private bool logSpawns = true;
 
     private HashSet<int> triggeredWaypointIndices = new HashSet<int>();
-    private Transform playerTransform;
+    // La variable playerTransform ya está declarada arriba
 
     private void Awake()
     {
-        // Busca al jugador UNA SOLA VEZ al inicio de la escena.
-        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
-        if (playerObject != null)
+
+        // fue asignada correctamente desde el Inspector.
+        if (playerTransform == null)
         {
-            playerTransform = playerObject.transform;
-        }
-        else
-        {
-            Debug.LogError("EnemySpawner: No se pudo encontrar al jugador. Asegúrate de que tenga el tag 'Player'.");
+            Debug.LogError("EnemySpawner: ¡No se ha asignado la referencia del 'playerTransform' en el Inspector!");
         }
     }
 

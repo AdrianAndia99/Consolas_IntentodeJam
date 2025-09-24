@@ -24,7 +24,6 @@ public class EnemyBehaviour : MonoBehaviour
     [Tooltip("Tiempo a esperar después de la animación de muerte antes de destruir el objeto.")]
     [SerializeField] private float deathDestroyDelay = 2f;
 
-    // --- Estado Interno ---
     private Transform playerTarget;
     private bool isChasing = false;
     private bool isAlive = true;
@@ -39,10 +38,6 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Método público para que una fuente externa (como el Spawner) asigne el objetivo.
-    /// Esto es mucho más eficiente que usar FindGameObjectWithTag.
-    /// </summary>
     public void Initialize(Transform player)
     {
         playerTarget = player;

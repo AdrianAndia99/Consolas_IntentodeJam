@@ -1,10 +1,10 @@
-using System.Collections;
 using UnityEngine;
+using System.Collections;
 
 public class Bullet : MonoBehaviour
 {
     public float lifeTime = 2f;
-    public float damage = 25f;
+    public int damage = 25; 
     [HideInInspector] public PlayerShoot pool;
 
     private void OnEnable()
@@ -21,12 +21,15 @@ public class Bullet : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        EnemyHealth enemy = collision.collider.GetComponent<EnemyHealth>();
+        EnemyBehaviour enemy = collision.collider.GetComponent<EnemyBehaviour>();
         if (enemy != null)
         {
             enemy.TakeDamage(damage);
         }
+
         if (pool != null)
+        {
             pool.ReturnBullet(gameObject);
+        }
     }
 }
