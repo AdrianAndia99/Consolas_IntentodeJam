@@ -10,8 +10,8 @@ public class PlayerShoot : MonoBehaviour
     public int currentAmmo;
 
     [Header("Arma / Proyectil")]
-    public GameObject bulletPrefab; // Prefab del proyectil
-    public Transform firePoint;     // Punto de disparo (usa rayOrigin si quieres)
+    public GameObject bulletPrefab; 
+    public Transform firePoint;     
     public float bulletSpeed = 30f;
 
     [Header("Pooling")]
@@ -28,23 +28,31 @@ public class PlayerShoot : MonoBehaviour
         if (firePoint == null && Camera.main != null)
             firePoint = Camera.main.transform;
 
-        // Inicializa el pool de balas
+        
         for (int i = 0; i < poolSize; i++)
         {
             GameObject bullet = Instantiate(bulletPrefab);
             bullet.SetActive(false);
-            bullet.GetComponent<Bullet>().pool = this; // Asigna referencia al pool
+            bullet.GetComponent<Bullet>().pool = this;
             bulletPool.Enqueue(bullet);
         }
     }
 
-    // Conecta esta función al Input Action "Shoot"
-   public void OnShoot(InputAction.CallbackContext ctx)
+    private IEnumerator Vibrate(float lowFreq, float highFreq, float duration)
+    {
+        if (Gamepad.current == null) yield break;
+
+        Gamepad.current.SetMotorSpeeds(lowFreq, highFreq);
+        yield return new WaitForSeconds(duration);
+        Gamepad.current.SetMotorSpeeds(0, 0);
+    }
+
+    
+    public void OnShoot(InputAction.CallbackContext ctx)
 {
-    if (ctx.performed) // Solo dispara cuando la acción está en Performed
+    if (ctx.performed) 
         TryShoot();
 }
-    // Conecta esta función al Input Action "Reload"
     public void OnReload(InputAction.CallbackContext ctx)
     {
         if (isReloading) return;
@@ -74,6 +82,8 @@ public class PlayerShoot : MonoBehaviour
         }
 
         currentAmmo--;
+        StartCoroutine(Vibrate(0.3f, 0.6f, 0.1f));
+
         Debug.Log($"Disparo! Balas restantes: {currentAmmo}/{maxAmmo}");
 
         ShootBullet();
@@ -91,7 +101,7 @@ public class PlayerShoot : MonoBehaviour
             Rigidbody rb = bullet.GetComponent<Rigidbody>();
 if (rb != null)
 {
-    rb.linearVelocity = Vector3.zero; // Unity 6+
+    rb.linearVelocity = Vector3.zero; 
     rb.AddForce((firePoint != null ? firePoint.forward : transform.forward) * bulletSpeed, ForceMode.VelocityChange);
 }
         }
@@ -101,7 +111,6 @@ if (rb != null)
         }
     }
 
-    // Llama esto desde el script de la bala cuando deba volver al pool
     public void ReturnBullet(GameObject bullet)
     {
         bullet.SetActive(false);
@@ -111,14 +120,15 @@ if (rb != null)
     private IEnumerator Reload()
     {
         isReloading = true;
+        StartCoroutine(Vibrate(0.2f, 0.4f, 0.3f)); 
         Debug.Log("Recargando...");
         yield return new WaitForSeconds(reloadTime);
         currentAmmo = maxAmmo;
         isReloading = false;
+        StartCoroutine(Vibrate(0.5f, 0.8f, 0.2f)); 
         Debug.Log($"Recarga completa. Balas: {currentAmmo}/{maxAmmo}");
     }
 
-    // Métodos utilitarios para UI o debugging
     public int GetCurrentAmmo() => currentAmmo;
     public bool IsReloading() => isReloading;
 }
