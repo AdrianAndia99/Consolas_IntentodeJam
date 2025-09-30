@@ -1,10 +1,11 @@
 using UnityEngine;
+using System.Collections; // <-- CAMBIO: Necesario para corutinas.
 
 public class EnemyBehaviour : MonoBehaviour
 {
     [Header("Stats")]
     [Tooltip("Vida inicial del enemigo.")]
-    [SerializeField] private int health = 100;
+    [SerializeField] private int initialHealth = 100; // <-- CAMBIO: Renombrado para claridad.
 
     [Header("Movement")]
     [Tooltip("Velocidad de movimiento del enemigo al perseguir.")]
@@ -13,29 +14,35 @@ public class EnemyBehaviour : MonoBehaviour
     [SerializeField] private float rotateSpeed = 10f;
 
     [Header("Player Detection")]
-    [Tooltip("Rango en el que el enemigo puede detectar al jugador.")]
     [SerializeField] private float detectionRadius = 10f;
-    [Tooltip("Ángulo de visión del enemigo (en grados).")]
     [SerializeField][Range(0, 360)] private float fieldOfViewAngle = 120f;
-    [Tooltip("La máscara de capas para los obstáculos que pueden bloquear la línea de visión.")]
     [SerializeField] private LayerMask obstacleMask;
 
     [Header("Animation")]
-    [Tooltip("Tiempo a esperar después de la animación de muerte antes de destruir el objeto.")]
     [SerializeField] private float deathDestroyDelay = 2f;
 
     private Transform playerTarget;
     private bool isChasing = false;
     private bool isAlive = true;
     private Animator animator;
+    private Collider enemyCollider; // <-- CAMBIO: Referencia al collider.
+    private int currentHealth; // <-- CAMBIO: Vida actual separada de la inicial.
 
     private void Awake()
     {
         animator = GetComponent<Animator>();
+        enemyCollider = GetComponent<Collider>(); // <-- CAMBIO: Obtenemos el collider.
         if (animator == null)
         {
             Debug.LogError($"EnemyBehaviour: No se encontró un componente Animator en {name}.");
         }
+    }
+
+    // <-- CAMBIO: OnEnable se ejecuta cada vez que el objeto es activado.
+    // Ideal para reiniciar el estado del enemigo.
+    private void OnEnable()
+    {
+        ResetEnemyState();
     }
 
     public void Initialize(Transform player)
@@ -45,7 +52,6 @@ public class EnemyBehaviour : MonoBehaviour
 
     private void Update()
     {
-        // Si el enemigo no está vivo o no tiene un objetivo, no hace nada.
         if (!isAlive || playerTarget == null) return;
 
         if (isChasing)
@@ -58,16 +64,33 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
+    private void ResetEnemyState()
+    {
+        currentHealth = initialHealth;
+        isAlive = true;
+        isChasing = false;
+
+        if (enemyCollider != null)
+        {
+            enemyCollider.enabled = true;
+        }
+
+        // Asegura que las animaciones se reinicien correctamente.
+        if (animator != null)
+        {
+            animator.Rebind();
+            animator.Update(0f);
+        }
+    }
+
     private void DetectPlayer()
     {
-        // Comprueba si el jugador está dentro del rango y línea de visión.
         if (Vector3.Distance(transform.position, playerTarget.position) > detectionRadius) return;
         Vector3 directionToPlayer = (playerTarget.position - transform.position).normalized;
         if (Vector3.Angle(transform.forward, directionToPlayer) > fieldOfViewAngle / 2) return;
         float distanceToPlayer = Vector3.Distance(transform.position, playerTarget.position);
         if (Physics.Raycast(transform.position, directionToPlayer, distanceToPlayer, obstacleMask)) return;
 
-        // Si todas las condiciones se cumplen, comienza la persecución.
         isChasing = true;
         animator.SetBool("isChasing", true);
     }
@@ -75,7 +98,7 @@ public class EnemyBehaviour : MonoBehaviour
     private void ChasePlayer()
     {
         Vector3 direction = (playerTarget.position - transform.position).normalized;
-        direction.y = 0; // Ignorar la altura para el movimiento en el plano.
+        direction.y = 0;
         transform.position += direction * moveSpeed * Time.deltaTime;
 
         if (direction != Vector3.zero)
@@ -89,10 +112,10 @@ public class EnemyBehaviour : MonoBehaviour
     {
         if (!isAlive) return;
 
-        health -= damageAmount;
+        currentHealth -= damageAmount;
         animator.SetTrigger("takeDamage");
 
-        if (health <= 0)
+        if (currentHealth <= 0)
         {
             Die();
         }
@@ -101,19 +124,28 @@ public class EnemyBehaviour : MonoBehaviour
     private void Die()
     {
         isAlive = false;
-        animator.SetBool("isChasing", false); // Detiene la animación de correr
-        animator.SetTrigger("die"); // Activa la animación de muerte
+        animator.SetBool("isChasing", false);
+        animator.SetTrigger("die");
 
-        GetComponent<Collider>().enabled = false; // Desactiva el collider para no interactuar más
-        this.enabled = false; // Desactiva este script para detener el Update()
+        if (enemyCollider != null)
+        {
+            enemyCollider.enabled = false;
+        }
 
-        // Destruye el objeto después de un tiempo para dar lugar a la animación de muerte.
-        Destroy(gameObject, deathDestroyDelay);
+        // <-- CAMBIO: Reemplazamos Destroy por una corutina que desactiva el objeto.
+        StartCoroutine(DeactivateAfterAnimation());
     }
 
+    // <-- CAMBIO: Nueva corutina para devolver el objeto al pool después de la animación.
+    private IEnumerator DeactivateAfterAnimation()
+    {
+        yield return new WaitForSeconds(deathDestroyDelay);
+        gameObject.SetActive(false); // Devuelve el objeto al pool.
+    }
+
+    // El método OnDrawGizmosSelected no necesita cambios.
     private void OnDrawGizmosSelected()
     {
-        // Dibuja las ayudas visuales en el editor de Unity.
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
         Vector3 forward = transform.forward;

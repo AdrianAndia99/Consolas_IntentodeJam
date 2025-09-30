@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-// Clase auxiliar para organizar la información de cada oleada en el Inspector.
+// La clase SpawnWave no necesita cambios.
 [System.Serializable]
 public class SpawnWave
 {
@@ -25,8 +25,7 @@ public class SpawnWave
 public class EnemySpawner : MonoBehaviour
 {
     [Header("Configuración General")]
-    [Tooltip("Prefab del enemigo a instanciar.")]
-    [SerializeField] private GameObject enemyPrefab;
+    // [SerializeField] private GameObject enemyPrefab; // <-- CAMBIO: Ya no lo necesita, lo gestiona el Pooler.
 
     [Tooltip("Lista de todas las oleadas de enemigos que ocurrirán en la escena.")]
     [SerializeField] private List<SpawnWave> spawnWaves = new List<SpawnWave>();
@@ -39,18 +38,15 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Dependencias")]
     [Tooltip("Arrastra aquí el objeto del Jugador desde la jerarquía.")]
-    [SerializeField] private Transform playerTransform; // <-- ¡CAMBIO IMPORTANTE!
+    [SerializeField] private Transform playerTransform;
 
     [Header("Debug")]
     [SerializeField] private bool logSpawns = true;
 
     private HashSet<int> triggeredWaypointIndices = new HashSet<int>();
-    // La variable playerTransform ya está declarada arriba
 
     private void Awake()
     {
-
-        // fue asignada correctamente desde el Inspector.
         if (playerTransform == null)
         {
             Debug.LogError("EnemySpawner: ¡No se ha asignado la referencia del 'playerTransform' en el Inspector!");
@@ -59,48 +55,54 @@ public class EnemySpawner : MonoBehaviour
 
     private void OnEnable()
     {
-        // Se suscribe al evento del jugador para saber cuándo llega a un waypoint.
         PlayerControl.OnReachedWaypoint += HandleReachedWaypoint;
     }
 
     private void OnDisable()
     {
-        // Se desuscribe del evento para evitar errores al cambiar de escena.
         PlayerControl.OnReachedWaypoint -= HandleReachedWaypoint;
     }
 
     private void HandleReachedWaypoint(PlayerControl pc, int index)
     {
-        // Busca si alguna oleada corresponde al waypoint actual.
         SpawnWave waveToTrigger = spawnWaves.Find(wave => wave.triggerWaypointIndex == index);
 
         if (waveToTrigger == null) return;
         if (spawnOncePerWave && triggeredWaypointIndices.Contains(index)) return;
-        if (enemyPrefab == null || playerTransform == null) return;
+        // if (enemyPrefab == null || playerTransform == null) return; // <-- CAMBIO: Ya no revisamos el prefab.
+        if (playerTransform == null) return;
 
         if (logSpawns)
         {
             Debug.Log($"<color=orange>Activando oleada '{waveToTrigger.waveName}' en waypoint {index}.</color>");
         }
 
-        // Procesa cada punto de spawn definido en la oleada.
         foreach (Transform spawnPoint in waveToTrigger.spawnPoints)
         {
             int enemyCount = Random.Range(waveToTrigger.minEnemiesPerPoint, waveToTrigger.maxEnemiesPerPoint + 1);
 
             for (int i = 0; i < enemyCount; i++)
             {
-                Vector3 randomOffset = (scatterRadius > 0f) ? Random.insideUnitSphere * scatterRadius : Vector3.zero;
-                randomOffset.y = 0;
-                Vector3 spawnPos = spawnPoint.position + randomOffset;
+                // <-- CAMBIO: Lógica de instanciación reemplazada por el pooler.
+                GameObject enemyInstance = ObjectPooler.Instance.GetPooledObject();
 
-                GameObject enemyInstance = Instantiate(enemyPrefab, spawnPos, spawnPoint.rotation);
-
-                // Inyección de dependencias: Pasa la referencia del jugador al nuevo enemigo.
-                EnemyBehaviour enemyBehaviour = enemyInstance.GetComponent<EnemyBehaviour>();
-                if (enemyBehaviour != null)
+                if (enemyInstance != null)
                 {
-                    enemyBehaviour.Initialize(playerTransform);
+                    Vector3 randomOffset = (scatterRadius > 0f) ? Random.insideUnitSphere * scatterRadius : Vector3.zero;
+                    randomOffset.y = 0;
+                    Vector3 spawnPos = spawnPoint.position + randomOffset;
+
+                    // Configura posición, rotación y activa el objeto.
+                    enemyInstance.transform.position = spawnPos;
+                    enemyInstance.transform.rotation = spawnPoint.rotation;
+                    enemyInstance.SetActive(true);
+
+                    // Inyección de dependencias (sigue igual).
+                    EnemyBehaviour enemyBehaviour = enemyInstance.GetComponent<EnemyBehaviour>();
+                    if (enemyBehaviour != null)
+                    {
+                        enemyBehaviour.Initialize(playerTransform);
+                    }
                 }
             }
         }
@@ -111,14 +113,12 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
+    // El método OnDrawGizmosSelected no necesita cambios.
     private void OnDrawGizmosSelected()
     {
-        // Dibuja ayudas visuales en el editor para facilitar la configuración.
         if (spawnWaves == null) return;
-
         Gizmos.color = new Color(1f, 0.5f, 0f, 0.8f);
         Gizmos.DrawCube(transform.position, Vector3.one * 0.3f);
-
         foreach (var wave in spawnWaves)
         {
             if (wave.spawnPoints == null) continue;
@@ -128,7 +128,6 @@ public class EnemySpawner : MonoBehaviour
                 Gizmos.color = new Color(1f, 0.3f, 0f, 0.5f);
                 Gizmos.DrawSphere(point.position, 0.25f);
                 Gizmos.DrawLine(transform.position, point.position);
-
                 if (scatterRadius > 0f)
                 {
                     Gizmos.color = new Color(1f, 0.3f, 0f, 0.15f);
