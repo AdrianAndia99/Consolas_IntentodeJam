@@ -28,14 +28,41 @@ public class PlayerShoot : MonoBehaviour
         if (firePoint == null && Camera.main != null)
             firePoint = Camera.main.transform;
 
+        InitializeBulletPool();
+    }
+
+    private void InitializeBulletPool()
+    {
+        if (bulletPrefab == null)
+        {
+            Debug.LogError("PlayerShoot: bulletPrefab no está asignado!");
+            return;
+        }
+
+        bulletPool.Clear(); // Limpiar por si acaso
         
         for (int i = 0; i < poolSize; i++)
         {
             GameObject bullet = Instantiate(bulletPrefab);
             bullet.SetActive(false);
-            bullet.GetComponent<Bullet>().pool = this;
+            
+            // Verificar que el prefab tiene el componente Bullet
+            Bullet bulletComponent = bullet.GetComponent<Bullet>();
+            if (bulletComponent != null)
+            {
+                bulletComponent.pool = this;
+            }
+            else
+            {
+                Debug.LogError($"PlayerShoot: El bulletPrefab no tiene el componente Bullet!");
+                Destroy(bullet);
+                continue;
+            }
+            
             bulletPool.Enqueue(bullet);
         }
+        
+        Debug.Log($"Pool de balas inicializado: {bulletPool.Count} balas disponibles.");
     }
 
     private IEnumerator Vibrate(float lowFreq, float highFreq, float duration)
@@ -94,27 +121,95 @@ public class PlayerShoot : MonoBehaviour
         if (bulletPool.Count > 0)
         {
             GameObject bullet = bulletPool.Dequeue();
-            bullet.transform.position = firePoint != null ? firePoint.position : transform.position;
-            bullet.transform.rotation = firePoint != null ? firePoint.rotation : transform.rotation;
-            bullet.SetActive(true);
-
+            
+            // Configurar posición y rotación
+            Vector3 shootPos = firePoint != null ? firePoint.position : transform.position;
+            Quaternion shootRot = firePoint != null ? firePoint.rotation : transform.rotation;
+            Vector3 shootDir = firePoint != null ? firePoint.forward : transform.forward;
+            
+            bullet.transform.position = shootPos;
+            bullet.transform.rotation = shootRot;
+            
+            // Resetear physics antes de activar
             Rigidbody rb = bullet.GetComponent<Rigidbody>();
-if (rb != null)
-{
-    rb.linearVelocity = Vector3.zero; 
-    rb.AddForce((firePoint != null ? firePoint.forward : transform.forward) * bulletSpeed, ForceMode.VelocityChange);
-}
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+            
+            bullet.SetActive(true);
+            
+            // Aplicar fuerza después de activar
+            if (rb != null)
+            {
+                rb.AddForce(shootDir * bulletSpeed, ForceMode.Impulse);
+            }
         }
         else
         {
-            Debug.Log("No hay balas en el pool.");
+            Debug.LogWarning("Pool de balas vacío! Creando bala temporal...");
+            CreateTemporaryBullet();
+        }
+    }
+    
+    private void CreateTemporaryBullet()
+    {
+        if (bulletPrefab == null) return;
+        
+        GameObject bullet = Instantiate(bulletPrefab);
+        Vector3 shootPos = firePoint != null ? firePoint.position : transform.position;
+        Quaternion shootRot = firePoint != null ? firePoint.rotation : transform.rotation;
+        Vector3 shootDir = firePoint != null ? firePoint.forward : transform.forward;
+        
+        bullet.transform.position = shootPos;
+        bullet.transform.rotation = shootRot;
+        
+        Bullet bulletComponent = bullet.GetComponent<Bullet>();
+        if (bulletComponent != null)
+        {
+            bulletComponent.pool = null; // No pool, se autodestruirá
+        }
+        
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.AddForce(shootDir * bulletSpeed, ForceMode.Impulse);
+        }
+        
+        // Autodestruir después del lifetime
+        if (bulletComponent != null)
+        {
+            Destroy(bullet, bulletComponent.lifeTime);
+        }
+        else
+        {
+            Destroy(bullet, 3f); // Fallback
         }
     }
 
     public void ReturnBullet(GameObject bullet)
     {
+        if (bullet == null) return;
+        
+        // Verificar que no esté ya en el pool
+        if (!bullet.activeInHierarchy)
+        {
+            return; // Ya está desactivada, probablemente ya en el pool
+        }
+        
+        // Resetear physics antes de desactivar
+        Rigidbody rb = bullet.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+        
         bullet.SetActive(false);
         bulletPool.Enqueue(bullet);
+        
+        Debug.Log($"Bala retornada al pool. Disponibles: {bulletPool.Count}");
     }
 
     private IEnumerator Reload()

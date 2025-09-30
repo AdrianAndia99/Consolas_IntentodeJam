@@ -1000,7 +1000,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   objectToPool: {fileID: 1240062406461834993, guid: 39e4085725f07a44fad92a7d9cc17b1b, type: 3}
-  amountToPool: 170
+  amountToPool: 100
 --- !u!4 &393555697
 Transform:
   m_ObjectHideFlags: 0
@@ -1503,7 +1503,7 @@ MonoBehaviour:
   speed: 1000
   clampInsideParent: 1
   boundsOverride: {fileID: 1284337898}
-  margin: {x: 8, y: 8}
+  margin: {x: 10, y: 10}
   normalizedMin: {x: -1, y: -1}
   normalizedMax: {x: -1, y: -1}
   drawBoundsGizmo: 1
@@ -4119,7 +4119,7 @@ MonoBehaviour:
   maxAmmo: 6
   currentAmmo: 0
   bulletPrefab: {fileID: 8305165391608508554, guid: 6063c220ab8f9944dadf06cea9cafc98, type: 3}
-  firePoint: {fileID: 0}
+  firePoint: {fileID: 664699485}
   bulletSpeed: 30
   poolSize: 10
   reloadTime: 1
