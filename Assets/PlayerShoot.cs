@@ -38,8 +38,17 @@ public class PlayerShoot : MonoBehaviour
         }
     }
 
+    private IEnumerator Vibrate(float lowFreq, float highFreq, float duration)
+    {
+        if (Gamepad.current == null) yield break;
+
+        Gamepad.current.SetMotorSpeeds(lowFreq, highFreq);
+        yield return new WaitForSeconds(duration);
+        Gamepad.current.SetMotorSpeeds(0, 0);
+    }
+
     // Conecta esta función al Input Action "Shoot"
-   public void OnShoot(InputAction.CallbackContext ctx)
+    public void OnShoot(InputAction.CallbackContext ctx)
 {
     if (ctx.performed) // Solo dispara cuando la acción está en Performed
         TryShoot();
@@ -74,6 +83,8 @@ public class PlayerShoot : MonoBehaviour
         }
 
         currentAmmo--;
+        StartCoroutine(Vibrate(0.3f, 0.6f, 0.1f));
+
         Debug.Log($"Disparo! Balas restantes: {currentAmmo}/{maxAmmo}");
 
         ShootBullet();
@@ -111,12 +122,15 @@ if (rb != null)
     private IEnumerator Reload()
     {
         isReloading = true;
+        StartCoroutine(Vibrate(0.2f, 0.4f, 0.3f)); // Vibrar al empezar recarga
         Debug.Log("Recargando...");
         yield return new WaitForSeconds(reloadTime);
         currentAmmo = maxAmmo;
         isReloading = false;
+        StartCoroutine(Vibrate(0.5f, 0.8f, 0.2f)); // Vibrar al terminar recarga
         Debug.Log($"Recarga completa. Balas: {currentAmmo}/{maxAmmo}");
     }
+
 
     // Métodos utilitarios para UI o debugging
     public int GetCurrentAmmo() => currentAmmo;
