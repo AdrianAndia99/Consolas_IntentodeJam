@@ -13,6 +13,10 @@ public class PlayerShoot : MonoBehaviour
     public GameObject bulletPrefab; 
     public Transform firePoint;     
     public float bulletSpeed = 30f;
+    
+    [Header("Puntero UI")]
+    [Tooltip("Referencia al RectTransform del puntero de disparo en el Canvas")]
+    public RectTransform pointerUI;
 
     [Header("Pooling")]
     public int poolSize = 10;
@@ -116,19 +120,66 @@ public class PlayerShoot : MonoBehaviour
         ShootBullet();
     }
 
+    private void GetShootDirectionFromPointer(out Vector3 shootPosition, out Vector3 shootDirection)
+    {
+        Camera mainCam = Camera.main;
+        
+        // Posición de origen del disparo (puede ser la cámara o el firePoint)
+        shootPosition = firePoint != null ? firePoint.position : (mainCam != null ? mainCam.transform.position : transform.position);
+        
+        if (pointerUI != null && mainCam != null)
+        {
+            // Convertir la posición del puntero UI a coordenadas de pantalla
+            Vector2 pointerScreenPos = RectTransformUtility.WorldToScreenPoint(null, pointerUI.position);
+            
+            // Crear un rayo desde la cámara hacia el mundo en la posición del puntero
+            Ray ray = mainCam.ScreenPointToRay(pointerScreenPos);
+            
+            // Hacer raycast para encontrar un punto en el mundo
+            RaycastHit hit;
+            Vector3 targetPoint;
+            
+            if (Physics.Raycast(ray, out hit, 1000f))
+            {
+                // Si golpea algo, apuntar a ese punto
+                targetPoint = hit.point;
+            }
+            else
+            {
+                // Si no golpea nada, usar un punto lejano en la dirección del rayo
+                targetPoint = ray.GetPoint(1000f);
+            }
+            
+            // Calcular dirección desde la posición de disparo hacia el punto objetivo
+            shootDirection = (targetPoint - shootPosition).normalized;
+        }
+        else
+        {
+            // Fallback: usar dirección de la cámara o firePoint
+            if (firePoint != null)
+                shootDirection = firePoint.forward;
+            else if (mainCam != null)
+                shootDirection = mainCam.transform.forward;
+            else
+                shootDirection = transform.forward;
+                
+            Debug.LogWarning("PlayerShoot: No se encontró pointerUI o Camera.main. Usando dirección por defecto.");
+        }
+    }
+
     private void ShootBullet()
     {
         if (bulletPool.Count > 0)
         {
             GameObject bullet = bulletPool.Dequeue();
             
-            // Configurar posición y rotación
-            Vector3 shootPos = firePoint != null ? firePoint.position : transform.position;
-            Quaternion shootRot = firePoint != null ? firePoint.rotation : transform.rotation;
-            Vector3 shootDir = firePoint != null ? firePoint.forward : transform.forward;
+            // Obtener dirección del disparo basada en el puntero UI
+            Vector3 shootPos;
+            Vector3 shootDir;
+            GetShootDirectionFromPointer(out shootPos, out shootDir);
             
             bullet.transform.position = shootPos;
-            bullet.transform.rotation = shootRot;
+            bullet.transform.rotation = Quaternion.LookRotation(shootDir);
             
             // Resetear physics antes de activar
             Rigidbody rb = bullet.GetComponent<Rigidbody>();
@@ -158,12 +209,14 @@ public class PlayerShoot : MonoBehaviour
         if (bulletPrefab == null) return;
         
         GameObject bullet = Instantiate(bulletPrefab);
-        Vector3 shootPos = firePoint != null ? firePoint.position : transform.position;
-        Quaternion shootRot = firePoint != null ? firePoint.rotation : transform.rotation;
-        Vector3 shootDir = firePoint != null ? firePoint.forward : transform.forward;
+        
+        // Obtener dirección del disparo basada en el puntero UI
+        Vector3 shootPos;
+        Vector3 shootDir;
+        GetShootDirectionFromPointer(out shootPos, out shootDir);
         
         bullet.transform.position = shootPos;
-        bullet.transform.rotation = shootRot;
+        bullet.transform.rotation = Quaternion.LookRotation(shootDir);
         
         Bullet bulletComponent = bullet.GetComponent<Bullet>();
         if (bulletComponent != null)
