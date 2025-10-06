@@ -113,7 +113,6 @@ public class EnemySpawner : MonoBehaviour
         }
     }
 
-    // El método OnDrawGizmosSelected no necesita cambios.
     private void OnDrawGizmosSelected()
     {
         if (spawnWaves == null) return;

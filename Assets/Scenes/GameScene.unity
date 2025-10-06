@@ -4255,7 +4255,7 @@ MonoBehaviour:
   maxAmmo: 6
   currentAmmo: 0
   bulletPrefab: {fileID: 8305165391608508554, guid: 6063c220ab8f9944dadf06cea9cafc98, type: 3}
-  firePoint: {fileID: 0}
+  firePoint: {fileID: 664699485}
   bulletSpeed: 30
   poolSize: 10
   reloadTime: 1
@@ -5259,7 +5259,6 @@ MonoBehaviour:
     triggerWaypointIndex: 12
     spawnPoints:
     - {fileID: 1086065885}
-    - {fileID: 0}
     minEnemiesPerPoint: 1
     maxEnemiesPerPoint: 3
   - waveName: 11
