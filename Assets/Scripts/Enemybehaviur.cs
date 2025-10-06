@@ -6,7 +6,7 @@ public class EnemyBehaviour : MonoBehaviour
     [Header("Stats")]
     [Tooltip("Vida inicial del enemigo.")]
     [SerializeField] private int initialHealth = 100; // <-- CAMBIO: Renombrado para claridad.
-
+    [SerializeField] private int pointsOnDeath = 10;
     [Header("Movement")]
     [Tooltip("Velocidad de movimiento del enemigo al perseguir.")]
     [SerializeField] private float moveSpeed = 2.5f;
@@ -38,8 +38,6 @@ public class EnemyBehaviour : MonoBehaviour
         }
     }
 
-    // <-- CAMBIO: OnEnable se ejecuta cada vez que el objeto es activado.
-    // Ideal para reiniciar el estado del enemigo.
     private void OnEnable()
     {
         ResetEnemyState();
@@ -132,7 +130,10 @@ public class EnemyBehaviour : MonoBehaviour
             enemyCollider.enabled = false;
         }
 
-        // <-- CAMBIO: Reemplazamos Destroy por una corutina que desactiva el objeto.
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.AddScore(pointsOnDeath);
+        }
         StartCoroutine(DeactivateAfterAnimation());
     }
 
