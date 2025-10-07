@@ -2,6 +2,12 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 public class UImenu : MonoBehaviour
 {
+    [SerializeField] private AudioClipSO sounMenu;
+
+    void Awake()
+    {
+        sounMenu.PlayLoop();
+    }
     public void LoadScene(string sceneName)
     {
         SceneManager.LoadScene(sceneName);
@@ -18,8 +24,8 @@ public class UImenu : MonoBehaviour
     }
     public void BackToMenu()
     {
-        // Si pausaste el juego al finalizar, reanuda antes de ir al menú
+        // Si pausaste el juego al finalizar, reanuda antes de ir al menï¿½
         if (Time.timeScale == 0f) Time.timeScale = 1f;
-        LoadScene(menuSceneName); // Usa el método que ya tienes:contentReference[oaicite:6]{index=6}
+        LoadScene(menuSceneName); // Usa el mï¿½todo que ya tienes:contentReference[oaicite:6]{index=6}
     }
 }
