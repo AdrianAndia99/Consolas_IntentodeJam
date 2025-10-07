@@ -9,18 +9,6 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.66238654
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.66238654
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.66238654
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
       propertyPath: m_LocalPosition.x
       value: -112.03
       objectReference: {fileID: 0}
@@ -60,9 +48,13 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -2078486811228654802, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 523241dcabd5f92458d8ddd565d47951, type: 2}
     - target: {fileID: 919132149155446097, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
       propertyPath: m_Name
-      value: Frog
+      value: Frog heavy
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -80,6 +72,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2238368470319601587}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7884416650931722461}
   m_SourcePrefab: {fileID: 100100000, guid: 533e88676c2fb524e8175297eb39d2b6, type: 3}
 --- !u!1 &1240062406461834993 stripped
 GameObject:
@@ -98,7 +93,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d3489a52329e864ab87c6202242a5d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialHealth: 100
+  initialHealth: 300
   pointsOnDeath: 10
   moveSpeed: 2.5
   rotateSpeed: 10
@@ -127,8 +122,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.73, y: 2.38, z: 1.22}
-  m_Center: {x: 0, y: 1.28, z: 0}
+  m_Size: {x: 1.87, y: 2.39, z: 1}
+  m_Center: {x: 0, y: 1.32, z: 0}
 --- !u!95 &3875664519475465412
 Animator:
   serializedVersion: 7
@@ -178,3 +173,25 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &7884416650931722461
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1240062406461834993}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64dc1b8cb09067e468e9fa6a29b3da92, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  initialHealth: 300
+  pointsOnDeath: 10
+  moveSpeed: 2.5
+  rotateSpeed: 10
+  detectionRadius: 10
+  fieldOfViewAngle: 120
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  deathDestroyDelay: 2

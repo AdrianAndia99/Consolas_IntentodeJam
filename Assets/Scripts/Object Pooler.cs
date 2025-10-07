@@ -3,9 +3,6 @@ using System.Collections.Generic;
 
 public class ObjectPooler : MonoBehaviour
 {
-    // Implementación de un Singleton para fácil acceso desde otros scripts.
-    public static ObjectPooler Instance;
-
     [Tooltip("El prefab del objeto que este pool gestionará.")]
     [SerializeField] private GameObject objectToPool;
 
@@ -14,39 +11,22 @@ public class ObjectPooler : MonoBehaviour
 
     private List<GameObject> pooledObjects;
 
-    private void Awake()
-    {
-        // Asegura que solo haya una instancia del ObjectPooler.
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
-    }
 
     void Start()
     {
-        // Inicializa el pool creando los objetos.
+        // Esta lógica se mantiene igual.
         pooledObjects = new List<GameObject>();
         for (int i = 0; i < amountToPool; i++)
         {
             GameObject obj = Instantiate(objectToPool);
-            obj.SetActive(false); // Los mantiene desactivados hasta que se necesiten.
+            obj.SetActive(false);
             pooledObjects.Add(obj);
         }
     }
 
-    /// <summary>
-    /// Obtiene un objeto del pool. Si no hay disponibles, opcionalmente puede crear uno nuevo.
-    /// </summary>
-    /// <returns>Un GameObject del pool que está inactivo, o null si no hay ninguno.</returns>
     public GameObject GetPooledObject()
     {
-        // Busca en la lista un objeto que no esté activo en la jerarquía.
+        // Esta lógica se mantiene igual.
         foreach (GameObject obj in pooledObjects)
         {
             if (!obj.activeInHierarchy)
@@ -55,13 +35,6 @@ public class ObjectPooler : MonoBehaviour
             }
         }
 
-        // Opcional: Si te quedas sin objetos, puedes instanciar uno nuevo y añadirlo al pool.
-        // GameObject newObj = Instantiate(objectToPool);
-        // newObj.SetActive(false);
-        // pooledObjects.Add(newObj);
-        // return newObj;
-
-        // O retornar null si prefieres un pool de tamaño fijo.
         Debug.LogWarning("ObjectPooler: No hay suficientes objetos en el pool.");
         return null;
     }
