@@ -25,8 +25,9 @@ public class SpawnWave
 public class EnemySpawner : MonoBehaviour
 {
     [Header("Configuración General")]
-    // [SerializeField] private GameObject enemyPrefab; // <-- CAMBIO: Ya no lo necesita, lo gestiona el Pooler.
-
+    [SerializeField] private List<ObjectPooler> variantPools; // Asigna aquí los poolers de cada variante
+    [SerializeField] private List<float> variantWeights;
+    [SerializeField] private bool useSingletonAsFallback = true;
     [Tooltip("Lista de todas las oleadas de enemigos que ocurrirán en la escena.")]
     [SerializeField] private List<SpawnWave> spawnWaves = new List<SpawnWave>();
 
@@ -83,8 +84,14 @@ public class EnemySpawner : MonoBehaviour
 
             for (int i = 0; i < enemyCount; i++)
             {
-                // <-- CAMBIO: Lógica de instanciación reemplazada por el pooler.
-                GameObject enemyInstance = ObjectPooler.Instance.GetPooledObject();
+                var pool = PickVariantPool();
+                GameObject enemyInstance = pool != null ? pool.GetPooledObject() : null;
+
+                if (enemyInstance == null)
+                {
+                    Debug.LogWarning("EnemySpawner: no se pudo obtener objeto del pool.");
+                    continue; // o return, según tu flujo
+                }
 
                 if (enemyInstance != null)
                 {
@@ -111,6 +118,41 @@ public class EnemySpawner : MonoBehaviour
         {
             triggeredWaypointIndices.Add(index);
         }
+    }
+    private ObjectPooler PickVariantPool()
+    {
+        // El resto del código funciona perfectamente con la lista.
+        if (variantPools == null || variantPools.Count == 0)
+        {
+            Debug.LogError("No hay pools de variantes asignados en el EnemySpawner.");
+            return null;
+        }
+
+        // Si no hay pesos válidos, elige uniforme
+        if (variantWeights == null || variantWeights.Count != variantPools.Count)
+        {
+            int i = Random.Range(0, variantPools.Count);
+            return variantPools[i];
+        }
+
+        // Ruleta por pesos (se mantiene igual)...
+        float total = 0f;
+        for (int i = 0; i < variantWeights.Count; i++)
+            total += Mathf.Max(0f, variantWeights[i]);
+
+        if (total <= 0f)
+        {
+            int i = Random.Range(0, variantPools.Count);
+            return variantPools[i];
+        }
+
+        float r = Random.value * total;
+        for (int i = 0; i < variantPools.Count; i++)
+        {
+            r -= Mathf.Max(0f, variantWeights[i]);
+            if (r <= 0f) return variantPools[i];
+        }
+        return variantPools[variantPools.Count - 1];
     }
 
     private void OnDrawGizmosSelected()
