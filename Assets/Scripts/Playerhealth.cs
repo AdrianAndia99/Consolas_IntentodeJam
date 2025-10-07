@@ -1,6 +1,6 @@
 using UnityEngine;
 using System;
-
+using UnityEngine.SceneManagement;
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Salud")]
@@ -52,7 +52,7 @@ public class PlayerHealth : MonoBehaviour
         if (currentHealth <= 0)
         {
             OnDeath?.Invoke();
-            // Aquí puedes disparar flow de derrota, panel, etc.
+            SceneManager.LoadScene("MenuScene");
         }
     }
 
