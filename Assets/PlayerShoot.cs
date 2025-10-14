@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
+using System; // <--- AÑADIDO
 
 public class PlayerShoot : MonoBehaviour
 {
@@ -10,10 +11,10 @@ public class PlayerShoot : MonoBehaviour
     public int currentAmmo;
 
     [Header("Arma / Proyectil")]
-    public GameObject bulletPrefab; 
-    public Transform firePoint;     
+    public GameObject bulletPrefab;
+    public Transform firePoint;
     public float bulletSpeed = 30f;
-    
+
     [Header("Puntero UI")]
     [Tooltip("Referencia al RectTransform del puntero de disparo en el Canvas")]
     public RectTransform pointerUI;
@@ -26,6 +27,12 @@ public class PlayerShoot : MonoBehaviour
     public float reloadTime = 1f;
     private bool isReloading = false;
 
+    // --- NUEVOS EVENTOS PARA LA UI ---
+    public static event Action<int, int> OnAmmoChanged; // Envía (munición actual, munición máxima)
+    public static event Action OnReloadStart;
+    public static event Action OnReloadFinish;
+    // ----------------------------------
+
     private void Awake()
     {
         currentAmmo = maxAmmo;
@@ -33,6 +40,12 @@ public class PlayerShoot : MonoBehaviour
             firePoint = Camera.main.transform;
 
         InitializeBulletPool();
+    }
+
+    // AÑADIDO: Notifica a la UI del estado inicial al activarse.
+    private void OnEnable()
+    {
+        OnAmmoChanged?.Invoke(currentAmmo, maxAmmo);
     }
 
     private void InitializeBulletPool()
@@ -43,14 +56,13 @@ public class PlayerShoot : MonoBehaviour
             return;
         }
 
-        bulletPool.Clear(); // Limpiar por si acaso
-        
+        bulletPool.Clear();
+
         for (int i = 0; i < poolSize; i++)
         {
             GameObject bullet = Instantiate(bulletPrefab);
             bullet.SetActive(false);
-            
-            // Verificar que el prefab tiene el componente Bullet
+
             Bullet bulletComponent = bullet.GetComponent<Bullet>();
             if (bulletComponent != null)
             {
@@ -62,10 +74,10 @@ public class PlayerShoot : MonoBehaviour
                 Destroy(bullet);
                 continue;
             }
-            
+
             bulletPool.Enqueue(bullet);
         }
-        
+
         Debug.Log($"Pool de balas inicializado: {bulletPool.Count} balas disponibles.");
     }
 
@@ -78,21 +90,20 @@ public class PlayerShoot : MonoBehaviour
         Gamepad.current.SetMotorSpeeds(0, 0);
     }
 
-    
     public void OnShoot(InputAction.CallbackContext ctx)
-{
-    if (ctx.performed) 
-        TryShoot();
-}
+    {
+        if (ctx.performed)
+            TryShoot();
+    }
+
     public void OnReload(InputAction.CallbackContext ctx)
     {
-        if (isReloading) return;
-
-        if (currentAmmo < maxAmmo)
+        // MODIFICADO: Añadido .performed para asegurar que se active solo una vez.
+        if (ctx.performed && currentAmmo < maxAmmo && !isReloading)
         {
             StartCoroutine(Reload());
         }
-        else
+        else if (ctx.performed && currentAmmo >= maxAmmo)
         {
             Debug.Log("Munición completa.");
         }
@@ -113,6 +124,7 @@ public class PlayerShoot : MonoBehaviour
         }
 
         currentAmmo--;
+        OnAmmoChanged?.Invoke(currentAmmo, maxAmmo); // AÑADIDO: Notifica el cambio de munición
         StartCoroutine(Vibrate(0.3f, 0.6f, 0.1f));
 
         Debug.Log($"Disparo! Balas restantes: {currentAmmo}/{maxAmmo}");
@@ -123,46 +135,37 @@ public class PlayerShoot : MonoBehaviour
     private void GetShootDirectionFromPointer(out Vector3 shootPosition, out Vector3 shootDirection)
     {
         Camera mainCam = Camera.main;
-        
-        // Posición de origen del disparo (puede ser la cámara o el firePoint)
+
         shootPosition = firePoint != null ? firePoint.position : (mainCam != null ? mainCam.transform.position : transform.position);
-        
+
         if (pointerUI != null && mainCam != null)
         {
-            // Convertir la posición del puntero UI a coordenadas de pantalla
             Vector2 pointerScreenPos = RectTransformUtility.WorldToScreenPoint(null, pointerUI.position);
-            
-            // Crear un rayo desde la cámara hacia el mundo en la posición del puntero
             Ray ray = mainCam.ScreenPointToRay(pointerScreenPos);
-            
-            // Hacer raycast para encontrar un punto en el mundo
+
             RaycastHit hit;
             Vector3 targetPoint;
-            
+
             if (Physics.Raycast(ray, out hit, 1000f))
             {
-                // Si golpea algo, apuntar a ese punto
                 targetPoint = hit.point;
             }
             else
             {
-                // Si no golpea nada, usar un punto lejano en la dirección del rayo
                 targetPoint = ray.GetPoint(1000f);
             }
-            
-            // Calcular dirección desde la posición de disparo hacia el punto objetivo
+
             shootDirection = (targetPoint - shootPosition).normalized;
         }
         else
         {
-            // Fallback: usar dirección de la cámara o firePoint
             if (firePoint != null)
                 shootDirection = firePoint.forward;
             else if (mainCam != null)
                 shootDirection = mainCam.transform.forward;
             else
                 shootDirection = transform.forward;
-                
+
             Debug.LogWarning("PlayerShoot: No se encontró pointerUI o Camera.main. Usando dirección por defecto.");
         }
     }
@@ -172,26 +175,23 @@ public class PlayerShoot : MonoBehaviour
         if (bulletPool.Count > 0)
         {
             GameObject bullet = bulletPool.Dequeue();
-            
-            // Obtener dirección del disparo basada en el puntero UI
+
             Vector3 shootPos;
             Vector3 shootDir;
             GetShootDirectionFromPointer(out shootPos, out shootDir);
-            
+
             bullet.transform.position = shootPos;
             bullet.transform.rotation = Quaternion.LookRotation(shootDir);
-            
-            // Resetear physics antes de activar
+
             Rigidbody rb = bullet.GetComponent<Rigidbody>();
             if (rb != null)
             {
                 rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
             }
-            
+
             bullet.SetActive(true);
-            
-            // Aplicar fuerza después de activar
+
             if (rb != null)
             {
                 rb.AddForce(shootDir * bulletSpeed, ForceMode.Impulse);
@@ -203,77 +203,78 @@ public class PlayerShoot : MonoBehaviour
             CreateTemporaryBullet();
         }
     }
-    
+
     private void CreateTemporaryBullet()
     {
         if (bulletPrefab == null) return;
-        
+
         GameObject bullet = Instantiate(bulletPrefab);
-        
-        // Obtener dirección del disparo basada en el puntero UI
+
         Vector3 shootPos;
         Vector3 shootDir;
         GetShootDirectionFromPointer(out shootPos, out shootDir);
-        
+
         bullet.transform.position = shootPos;
         bullet.transform.rotation = Quaternion.LookRotation(shootDir);
-        
+
         Bullet bulletComponent = bullet.GetComponent<Bullet>();
         if (bulletComponent != null)
         {
-            bulletComponent.pool = null; // No pool, se autodestruirá
+            bulletComponent.pool = null;
         }
-        
+
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.AddForce(shootDir * bulletSpeed, ForceMode.Impulse);
         }
-        
-        // Autodestruir después del lifetime
+
         if (bulletComponent != null)
         {
             Destroy(bullet, bulletComponent.lifeTime);
         }
         else
         {
-            Destroy(bullet, 3f); // Fallback
+            Destroy(bullet, 3f);
         }
     }
 
     public void ReturnBullet(GameObject bullet)
     {
         if (bullet == null) return;
-        
-        // Verificar que no esté ya en el pool
+
         if (!bullet.activeInHierarchy)
         {
-            return; // Ya está desactivada, probablemente ya en el pool
+            return;
         }
-        
-        // Resetear physics antes de desactivar
+
         Rigidbody rb = bullet.GetComponent<Rigidbody>();
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
-        
+
         bullet.SetActive(false);
         bulletPool.Enqueue(bullet);
-        
+
         Debug.Log($"Bala retornada al pool. Disponibles: {bulletPool.Count}");
     }
 
     private IEnumerator Reload()
     {
         isReloading = true;
-        StartCoroutine(Vibrate(0.2f, 0.4f, 0.3f)); 
+        OnReloadStart?.Invoke(); // AÑADIDO: Notifica que la recarga empieza
+        StartCoroutine(Vibrate(0.2f, 0.4f, 0.3f));
         Debug.Log("Recargando...");
+
         yield return new WaitForSeconds(reloadTime);
+
         currentAmmo = maxAmmo;
         isReloading = false;
-        StartCoroutine(Vibrate(0.5f, 0.8f, 0.2f)); 
+        OnAmmoChanged?.Invoke(currentAmmo, maxAmmo); // AÑADIDO: Notifica el cambio de munición
+        OnReloadFinish?.Invoke(); // AÑADIDO: Notifica que la recarga termina
+        StartCoroutine(Vibrate(0.5f, 0.8f, 0.2f));
         Debug.Log($"Recarga completa. Balas: {currentAmmo}/{maxAmmo}");
     }
 
